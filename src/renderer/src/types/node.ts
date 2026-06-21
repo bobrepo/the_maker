@@ -22,6 +22,8 @@ export interface ValidationError {
 export interface NodeContext {
   properties: Record<string, any>;
   inputs: Record<string, any>;
+  nodeId?: string;
+  data?: any;
 }
 
 export interface NodeDefinition {

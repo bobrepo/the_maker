@@ -9,7 +9,7 @@ const TopBar = ({ setLogs }: { setLogs: (logs: string) => void }) => {
   const setEdges = useGraphStore((state) => state.setEdges);
 
   const handleRun = async () => {
-    const { code, errors } = GraphEngine.generateCode(nodes, edges);
+    const { code, errors } = await GraphEngine.generateCode(nodes, edges);
     if (errors.length > 0) {
       setLogs(`Validation Errors:\n${errors.join('\n')}`);
       return;
@@ -26,7 +26,7 @@ const TopBar = ({ setLogs }: { setLogs: (logs: string) => void }) => {
   };
 
   const handleBuild = async () => {
-    const { code, errors } = GraphEngine.generateCode(nodes, edges);
+    const { code, errors } = await GraphEngine.generateCode(nodes, edges);
     if (errors.length > 0) {
       setLogs(`Validation Errors:\n${errors.join('\n')}`);
       return;
@@ -34,9 +34,11 @@ const TopBar = ({ setLogs }: { setLogs: (logs: string) => void }) => {
 
     try {
       // @ts-ignore
-      const result = await window.electron.ipcRenderer.invoke('save-python', code);
+      const result = await window.electron.ipcRenderer.invoke('build-python', code);
       if (result.success) {
-        setLogs(`Successfully exported to: ${result.filePath}`);
+        setLogs(`Successfully exported to Desktop: ${result.filePath}`);
+      } else {
+        setLogs(`Export failed: ${result.error}`);
       }
     } catch (err: any) {
       setLogs(`Error exporting python: ${err.message}`);

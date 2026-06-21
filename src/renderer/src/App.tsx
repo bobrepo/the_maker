@@ -28,10 +28,33 @@ function Flow() {
   const onEdgesChange = useGraphStore((state) => state.onEdgesChange);
   const onConnect = useGraphStore((state) => state.onConnect);
   const addNode = useGraphStore((state) => state.addNode);
+  const deleteSelected = useGraphStore((state) => state.deleteSelected);
 
   useEffect(() => {
     registerNodes();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const activeElement = document.activeElement;
+        if (
+          activeElement &&
+          (activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
+        }
+        deleteSelected();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [deleteSelected]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();

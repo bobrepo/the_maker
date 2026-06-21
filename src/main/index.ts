@@ -98,6 +98,86 @@ app.whenReady().then(() => {
     return { success: false }
   })
 
+  // Dynamic Methods IPC Handlers
+  ipcMain.handle('methods:list', async () => {
+    const methodsDir = join(process.cwd(), 'meths')
+    if (!fs.existsSync(methodsDir)) {
+      fs.mkdirSync(methodsDir, { recursive: true })
+    }
+
+    const files = fs.readdirSync(methodsDir)
+    const methodsList: any[] = []
+
+    for (const file of files) {
+      // Treat all files as potential methods
+      const filePath = join(methodsDir, file)
+      const code = fs.readFileSync(filePath, 'utf-8')
+      const parsed = parsePythonMethod(code, file)
+      methodsList.push({
+        fileName: file,
+        code,
+        ...parsed
+      })
+    }
+
+    return methodsList
+  })
+
+  ipcMain.handle('methods:create-or-update', async (_, { methodName, code }) => {
+    const methodsDir = join(process.cwd(), 'meths')
+    if (!fs.existsSync(methodsDir)) {
+      fs.mkdirSync(methodsDir, { recursive: true })
+    }
+
+    const fileName = methodName.endsWith('.py') ? methodName : `${methodName}.py`
+    const filePath = join(methodsDir, fileName)
+
+    let finalCode = code
+    if (!finalCode) {
+      if (fs.existsSync(filePath)) {
+        finalCode = fs.readFileSync(filePath, 'utf-8')
+      } else {
+        const name = fileName.replace('.py', '')
+        finalCode = `def ${name}(x, y):\n    # Write your custom code here\n    result = x + y\n    return result\n`
+      }
+    }
+
+    fs.writeFileSync(filePath, finalCode, 'utf-8')
+    const parsed = parsePythonMethod(finalCode, fileName)
+
+    return {
+      fileName,
+      code: finalCode,
+      ...parsed
+    }
+  })
+
+  ipcMain.handle('methods:open-cursor', async (_, { fileName }) => {
+    const methodsDir = join(process.cwd(), 'meths')
+    const filePath = join(methodsDir, fileName)
+    
+    // Check if file exists, if not, create default
+    if (!fs.existsSync(filePath)) {
+      const name = fileName.replace('.py', '')
+      const template = `def ${name}(x, y):\n    # Write your custom code here\n    result = x + y\n    return result\n`
+      fs.writeFileSync(filePath, template, 'utf-8')
+    }
+
+    spawn('cursor', [filePath], { shell: true })
+    return { success: true }
+  })
+
+  ipcMain.handle('build-python', async (_, code) => {
+    try {
+      const desktopPath = app.getPath('desktop')
+      const filePath = join(desktopPath, 'main.py')
+      fs.writeFileSync(filePath, code, 'utf-8')
+      return { success: true, filePath }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
@@ -113,3 +193,37 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+function parsePythonMethod(code: string, fileName: string) {
+  // Enhanced regex to handle multiline and complex signatures
+  const defRegex = /def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*:/s
+  const defMatch = code.match(defRegex)
+
+  let methodName = fileName.replace('.py', '')
+  let args: string[] = []
+  if (defMatch) {
+    methodName = defMatch[1].trim()
+    const argsStr = defMatch[2]
+    args = argsStr
+      .split(',')
+      .map(arg => arg.trim().split('=')[0].trim().split(':')[0].trim())
+      .filter(arg => arg !== '' && arg !== 'self' && arg !== 'cls')
+  }
+
+  // Look for return statement with a value
+  const returnRegex = /^\s*return\s+(.+)$/m
+  const returnMatch = code.match(returnRegex)
+
+  let returnValue: string | null = null
+  if (returnMatch) {
+    const val = returnMatch[1].trim()
+    if (val !== 'None' && val !== '') {
+      returnValue = 'result' // Default name if we can't parse the exact variable
+      // Try to get variable name if it's a simple return var
+      const varMatch = val.match(/^([a-zA-Z_][a-zA-Z0-9_]*)$/)
+      if (varMatch) returnValue = varMatch[1]
+    }
+  }
+
+  return { methodName, args, returnValue }
+}
