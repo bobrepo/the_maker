@@ -55,7 +55,13 @@ app.whenReady().then(() => {
   ipcMain.handle('run-python', async (_, code) => {
     const tempPath = join(app.getPath('temp'), 'mstt_temp.py')
     fs.writeFileSync(tempPath, code)
-    spawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', `python "${tempPath}"`], { shell: true })
+
+    if (process.platform === 'win32') {
+      spawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', `python "${tempPath}"`], { shell: true })
+    } else {
+      // Linux/KDE support: try konsole, or fallback to xterm
+      spawn('konsole', ['-e', 'python3', tempPath], { detached: true, stdio: 'ignore' })
+    }
     return { success: true }
   })
 
@@ -163,7 +169,7 @@ app.whenReady().then(() => {
       fs.writeFileSync(filePath, template, 'utf-8')
     }
 
-    spawn('cursor', [filePath], { shell: true })
+    spawn('code', [filePath], { shell: true })
     return { success: true }
   })
 
