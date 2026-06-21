@@ -80,9 +80,19 @@ const TopBar = ({ setLogs }: { setLogs: (logs: string) => void }) => {
     }
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <div className="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-6">
+        <button
+          onClick={handleRefresh}
+          className="text-xs text-blue-400 hover:text-white transition-colors font-bold"
+        >
+          Refresh
+        </button>
         <div className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
           MSTT
         </div>

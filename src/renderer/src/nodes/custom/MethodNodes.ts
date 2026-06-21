@@ -46,8 +46,6 @@ export const MethodCallNode: NodeDefinition = {
 
     const methodName = context.properties.methodName;
     if (!methodName) return '# Call error: No method specified';
-
-    const shortId = context.nodeId?.split('-')[0] || '';
     
     // Filter dynamic inputs (arguments) and outputs (return value)
     const args = context.data?.inputs?.filter((i: any) => i.type === 'data') || [];
@@ -57,8 +55,9 @@ export const MethodCallNode: NodeDefinition = {
     const argValues = args.map((arg: any) => context.inputs[arg.id] || 'None').join(', ');
 
     if (outputs.length > 0) {
+      // Use the raw return variable name defined in the method signature
       const retValName = outputs[0].name || 'result';
-      return `${retValName}_${shortId} = ${methodName}(${argValues})`;
+      return `${retValName} = ${methodName}(${argValues})`;
     } else {
       return `${methodName}(${argValues})`;
     }
