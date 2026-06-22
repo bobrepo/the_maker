@@ -59,7 +59,7 @@ app.whenReady().then(() => {
     if (process.platform === 'win32') {
       spawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', `python "${tempPath}"`], { shell: true })
     } else {
-      // Linux/KDE support: try konsole, or fallback to xterm
+      // Linux/KDE support: try konsole, or fallback to xterm   this line for preaistance spawn('konsole', ['--noclose', '-e', 'python3', tempPath], { detached: true, stdio: 'ignore' })
       spawn('konsole', ['-e', 'python3', tempPath], { detached: true, stdio: 'ignore' })
     }
     return { success: true }
